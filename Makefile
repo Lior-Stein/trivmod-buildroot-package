@@ -1,0 +1,1 @@
+obj-m := trivMod.o
