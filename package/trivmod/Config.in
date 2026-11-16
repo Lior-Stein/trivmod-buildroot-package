@@ -1,0 +1,8 @@
+
+config BR2_PACKAGE_TRIVMOD
+    bool "trivmod - Trivial Kernel Module"
+    depends on BR2_LINUX_KERNEL
+    help
+      A simple loadable kernel module that prints
+      Hello World when loaded and Bye Bye World
+      when unloaded.
