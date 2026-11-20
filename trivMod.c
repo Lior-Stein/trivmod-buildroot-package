@@ -3,7 +3,7 @@
 #include <linux/kernel.h>
 #include <linux/fs.h>
 
-static dev_t trivMod_dev
+static dev_t trivMod_dev;
 
 
 static int __init trivMod_init(void)
