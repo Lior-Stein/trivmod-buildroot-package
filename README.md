@@ -54,7 +54,7 @@ Extended the existing module to register a character device.
 **Result:** Character device registration and cleanup completed successfully.
 
 
-## Exercise – Device File Creation (Slide 120)
+## Exercise – Device File Creation
 
 Extended the character device driver to dynamically create
 and remove its device file.
