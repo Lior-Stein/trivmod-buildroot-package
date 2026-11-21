@@ -54,6 +54,27 @@ Extended the existing module to register a character device.
 **Result:** Character device registration and cleanup completed successfully.
 
 
+## Exercise – Device File Creation (Slide 120)
+
+Extended the character device driver to dynamically create
+and remove its device file.
+
+**Implementation:**
+- Added `class_create()` and `device_create()` during initialization.
+- Added error handling and resource cleanup.
+- Added `device_destroy()` and `class_destroy()` during module removal.
+
+**Raspberry Pi Verification:**
+- Loaded the module using `insmod`.
+- Verified the creation of `/sys/class/trivMod` and `/dev/trivMod`.
+- Removed the module using `rmmod`.
+- Confirmed both entries disappeared.
+
+**Result:** Dynamic device file creation and removal
+completed successfully.
+
+
+
 ## Notes
 
 The module is built through the Buildroot Package infrastructure, without simultaneous in-tree integration. Previous implementations are preserved in Git commit history.
