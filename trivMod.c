@@ -5,6 +5,9 @@
 #include <linux/cdev.h>
 #include <linux/device.h>
 #include <linux/err.h>
+#include <linux/uaccess.h>
+
+#define BUFFER_SIZE 4096
 
 static dev_t trivMod_dev;
 static int units = 1;
@@ -16,6 +19,10 @@ static struct trivMod_priv {
     struct device *device;
     int opens;
     int closes;
+
+    char buffer[BUFFER_SIZE];
+    size_t head;
+    size_t tail;
 } trivMod_priv;
 
 
@@ -48,11 +55,75 @@ static int trivMod_release(struct inode *ino, struct file *filp)
 }
 
 
+static ssize_t trivMod_write(struct file *filp,
+                             const char __user *buff,
+                             size_t count, loff_t *offp)
+{
+    struct trivMod_priv *priv = filp->private_data;
+    size_t head = priv->head;
+    size_t space;
+    size_t first;
+
+    if (count == 0)
+        return 0;
+
+    space = (priv->tail + BUFFER_SIZE - head - 1) % BUFFER_SIZE;
+
+    if (space == 0)
+        return -ENOSPC;
+
+    count = min(count, space);
+
+    first = min(count, BUFFER_SIZE - head);
+
+    if (copy_from_user(priv->buffer + head, buff, first))
+        return -EFAULT;
+
+    if (count > first) {
+        if (copy_from_user(priv->buffer, buff + first, count - first))
+            return -EFAULT;
+    }
+
+    priv->head = (head + count) % BUFFER_SIZE;
+    *offp += count;
+
+    return count;
+}
+
+
+static ssize_t trivMod_read(struct file *filp, char __user *buf,
+                            size_t count, loff_t *offp)
+{
+    struct trivMod_priv *priv = filp->private_data;
+    size_t available;
+    size_t first;
+
+    available = (priv->head + BUFFER_SIZE - priv->tail) % BUFFER_SIZE;
+    count = min(count, available);
+    if (count == 0)
+        return 0;
+
+    first = min(count, BUFFER_SIZE - priv->tail);
+
+    if (copy_to_user(buf, priv->buffer + priv->tail, first))
+        return -EFAULT;
+
+    if (count > first) {
+        if (copy_to_user(buf + first, priv->buffer, count - first))
+            return -EFAULT;
+    }
+
+    priv->tail = (priv->tail + count) % BUFFER_SIZE;
+    *offp += count;
+    return count;
+}
 
 static const struct file_operations trivMod_fops = {
     .owner = THIS_MODULE,
     .open = trivMod_open,
     .release = trivMod_release,
+     .read    = trivMod_read,
+    .write   = trivMod_write,
 };
 
 
@@ -94,6 +165,8 @@ static int __init trivMod_init(void)
 
     trivMod_priv.opens = 0;
     trivMod_priv.closes = 0;
+    trivMod_priv.head = 0;
+    trivMod_priv.tail = 0;
 
 
 
