@@ -3,8 +3,10 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
+#include <sys/ioctl.h>
+#include "trivMod_ioctl.h"
 
-int main(void)
+int main(int argc, char *argv[])
 {
     char write_buf[] = "hello";
     char read_buf[sizeof(write_buf)] = {0};
@@ -30,7 +32,7 @@ int main(void)
 
 
     if (bytes_read != written) {
-    fprintf(stderr, "Expected to read %zd bytes, got %zd\n",
+        fprintf(stderr, "Expected to read %zd bytes, got %zd\n",
             written, bytes_read);
         close(fd);
         return 1;
@@ -43,6 +45,26 @@ int main(void)
     }
 
     printf("Read back %zd bytes: %s\n", bytes_read, read_buf);
+
+    struct trivMod_stats stats;
+
+    if (argc == 2 && strcmp(argv[1], "clear") == 0) {
+        if (ioctl(fd, TRIVMOD_STATSCLR, 0) < 0) {
+            perror("ioctl STATSCLR");
+            close(fd);
+            return 1;
+        }
+    }
+
+
+    if (ioctl(fd, TRIVMOD_STATSGET, &stats) < 0) {
+        perror("ioctl STATSGET");
+        close(fd);
+        return 1;
+    }
+
+    printf("opens=%llu closes=%llu bytes_read=%llu bytes_written=%llu\n",
+           stats.opens, stats.closes, stats.bytes_read, stats.bytes_written);
 
     if (close(fd) < 0) {
         perror("close");

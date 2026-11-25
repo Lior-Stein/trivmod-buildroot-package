@@ -6,6 +6,7 @@
 #include <linux/device.h>
 #include <linux/err.h>
 #include <linux/uaccess.h>
+#include "trivMod_ioctl.h"
 
 #define BUFFER_SIZE 4096
 
@@ -17,8 +18,7 @@ static struct trivMod_priv {
     struct cdev cdev;
     struct class *cl;
     struct device *device;
-    int opens;
-    int closes;
+    struct trivMod_stats stats;
 
     char buffer[BUFFER_SIZE];
     size_t head;
@@ -33,9 +33,9 @@ static int trivMod_open(struct inode *ino, struct file *filp)
 
     priv = container_of(ino->i_cdev, struct trivMod_priv, cdev);
     filp->private_data = priv;
-    priv->opens++;
+    priv->stats.opens++;
 
-    printk(KERN_INFO "trivMod: open count = %d\n", priv->opens);
+    printk(KERN_INFO "trivMod: open count = %llu\n", priv->stats.opens);
 
     return 0;
 }
@@ -46,8 +46,8 @@ static int trivMod_release(struct inode *ino, struct file *filp)
     struct trivMod_priv *priv = filp->private_data;
 
     if (priv != NULL) {
-        priv->closes++;
-        printk(KERN_INFO "trivMod: release count = %d\n", priv->closes);
+        priv->stats.closes++;
+        printk(KERN_INFO "trivMod: release count = %llu\n", priv->stats.closes);
         filp->private_data = NULL;
     }
 
@@ -87,6 +87,8 @@ static ssize_t trivMod_write(struct file *filp,
     priv->head = (head + count) % BUFFER_SIZE;
     *offp += count;
 
+    priv->stats.bytes_written += count;
+
     return count;
 }
 
@@ -115,15 +117,40 @@ static ssize_t trivMod_read(struct file *filp, char __user *buf,
 
     priv->tail = (priv->tail + count) % BUFFER_SIZE;
     *offp += count;
+
+    priv->stats.bytes_read += count;
+
     return count;
+}
+
+static long trivMod_ioctl(struct file *filp, unsigned int cmd,
+                          unsigned long arg)
+{
+    struct trivMod_priv *priv = filp->private_data;
+
+    switch (cmd) {
+    case TRIVMOD_STATSGET:
+        if (copy_to_user((void __user *)arg, &priv->stats,
+                         sizeof(priv->stats)))
+            return -EFAULT;
+        return 0;
+
+    case TRIVMOD_STATSCLR:
+        priv->stats = (struct trivMod_stats){0};
+        return 0;
+
+    default:
+        return -EINVAL;
+    }
 }
 
 static const struct file_operations trivMod_fops = {
     .owner = THIS_MODULE,
     .open = trivMod_open,
     .release = trivMod_release,
-     .read    = trivMod_read,
+    .read    = trivMod_read,
     .write   = trivMod_write,
+    .unlocked_ioctl = trivMod_ioctl,
 };
 
 
@@ -163,8 +190,6 @@ static int __init trivMod_init(void)
         return ret;
     }
 
-    trivMod_priv.opens = 0;
-    trivMod_priv.closes = 0;
     trivMod_priv.head = 0;
     trivMod_priv.tail = 0;
 
