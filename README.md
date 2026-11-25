@@ -73,6 +73,26 @@ and remove its device file.
 **Result:** Dynamic device file creation and removal
 completed successfully.
 
+## Exercise – Open /Release
+
+## Open and Release
+
+Implemented the `open` and `release` operations for the character device.
+
+- Used `container_of` to access the device's private structure.
+- Stored the private data pointer in `filp->private_data`.
+- Added counters for open and release operations.
+- Added `printk` messages to display the counters.
+- Created `test_trivMod.c`, a user-space program that opens and closes `/dev/trivMod`.
+
+### Testing
+
+Cross-compiled the test program for ARM64 and tested it on the Raspberry Pi.
+
+- Open and close operations completed successfully.
+- Verified the kernel messages using `dmesg`.
+- Confirmed that both counters increased from 1 to 2 after running the test twice.
+- Successfully unloaded the module using `rmmod`.
 
 
 ## Notes
