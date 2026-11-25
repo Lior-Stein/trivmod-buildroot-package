@@ -108,6 +108,36 @@ On the Raspberry Pi, `test_trivMod.c` wrote `hello` (6 bytes including `'\0'`), 
 Test output: `Read back 6 bytes: hello`
 
 
+## Exercise – Driver Statistics with ioctl
+
+The driver tracks opens, closes, bytes read, and bytes written in its private
+data. The counters accumulate across runs while the module is loaded.
+
+- `TRIVMOD_STATSGET` returns the four counters to user space.
+- `TRIVMOD_STATSCLR` resets all four counters to zero.
+
+### Testing 
+
+Run `/root/test_trivMod` three times with the module freshly loaded. Each run
+writes and reads back 6 bytes. The test prints the counters before closing
+the device, so `closes` counts the completed closes from earlier runs.
+
+```text
+opens=1 closes=0 bytes_read=6 bytes_written=6
+opens=2 closes=1 bytes_read=12 bytes_written=12
+opens=3 closes=2 bytes_read=18 bytes_written=18
+```
+
+Run `/root/test_trivMod clear` while the same module is loaded. The program
+resets the counters after the read/write test and then prints the result.
+
+```text
+opens=0 closes=0 bytes_read=0 bytes_written=0
+```
+
+After testing, unload the module with `rmmod trivMod`.
+
+
 ## Notes
 
 The module is built through the Buildroot Package infrastructure, without simultaneous in-tree integration. Previous implementations are preserved in Git commit history.
