@@ -94,6 +94,19 @@ Cross-compiled the test program for ARM64 and tested it on the Raspberry Pi.
 - Confirmed that both counters increased from 1 to 2 after running the test twice.
 - Successfully unloaded the module using `rmmod`.
 
+## Exercise – read/ write
+
+## Read and Write
+
+- `/dev/trivMod` stores data in a 4 KiB circular buffer in the device's private data.
+- `write` copies data from user space at `head`, and `read` copies unread data back to user space from `tail`. When a transfer crosses the end of the buffer, it continues from the beginning in a second copy.
+
+### Testing
+
+On the Raspberry Pi, `test_trivMod.c` wrote `hello` (6 bytes including `'\0'`), read it back into a separate buffer, and verified with `memcmp()` that all 6 bytes matched.
+
+Test output: `Read back 6 bytes: hello`
+
 
 ## Notes
 
