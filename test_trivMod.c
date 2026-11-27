@@ -48,13 +48,6 @@ int main(int argc, char *argv[])
 
     struct trivMod_stats stats;
 
-    if (argc == 2 && strcmp(argv[1], "clear") == 0) {
-        if (ioctl(fd, TRIVMOD_STATSCLR, 0) < 0) {
-            perror("ioctl STATSCLR");
-            close(fd);
-            return 1;
-        }
-    }
 
 
     if (ioctl(fd, TRIVMOD_STATSGET, &stats) < 0) {
@@ -65,6 +58,15 @@ int main(int argc, char *argv[])
 
     printf("opens=%llu closes=%llu bytes_read=%llu bytes_written=%llu\n",
            stats.opens, stats.closes, stats.bytes_read, stats.bytes_written);
+
+    if (argc == 2 && strcmp(argv[1], "clear") == 0) {
+        if (ioctl(fd, TRIVMOD_STATSCLR, 0) < 0) {
+            perror("ioctl STATSCLR");
+            close(fd);
+            return 1;
+        }
+    }
+
 
     if (close(fd) < 0) {
         perror("close");

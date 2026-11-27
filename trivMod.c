@@ -85,7 +85,7 @@ static ssize_t trivMod_write(struct file *filp,
     }
 
     priv->head = (head + count) % BUFFER_SIZE;
-    *offp += count;
+   
 
     priv->stats.bytes_written += count;
 
@@ -116,7 +116,7 @@ static ssize_t trivMod_read(struct file *filp, char __user *buf,
     }
 
     priv->tail = (priv->tail + count) % BUFFER_SIZE;
-    *offp += count;
+    
 
     priv->stats.bytes_read += count;
 
@@ -166,17 +166,14 @@ static int __init trivMod_init(void)
 
     ret = cdev_add(&trivMod_priv.cdev, trivMod_dev, units);
     if (ret < 0) {
-        unregister_chrdev_region(trivMod_dev, units);
-        return ret;
+        goto err_unregister_region;
     }
 
     trivMod_priv.cl = class_create("trivMod");
 
     if (IS_ERR(trivMod_priv.cl)) {
        ret = PTR_ERR(trivMod_priv.cl);
-       cdev_del(&trivMod_priv.cdev);
-       unregister_chrdev_region(trivMod_dev, units);
-       return ret;
+       goto err_del_cdev;
     }
 
 
@@ -184,10 +181,7 @@ static int __init trivMod_init(void)
 
     if (IS_ERR(trivMod_priv.device)) {
         ret = PTR_ERR(trivMod_priv.device);
-        class_destroy(trivMod_priv.cl);
-        cdev_del(&trivMod_priv.cdev);
-        unregister_chrdev_region(trivMod_dev, units);
-        return ret;
+        goto err_destroy_class;
     }
 
     trivMod_priv.head = 0;
@@ -197,6 +191,14 @@ static int __init trivMod_init(void)
 
     printk(KERN_INFO "Hello World\n");
     return 0;
+
+    err_destroy_class:
+    class_destroy(trivMod_priv.cl);
+    err_del_cdev:
+        cdev_del(&trivMod_priv.cdev);
+    err_unregister_region:
+        unregister_chrdev_region(trivMod_dev, units);
+        return ret;
 }
 
 
